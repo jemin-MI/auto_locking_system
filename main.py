@@ -193,6 +193,7 @@ class TimerApp(QWidget):
                 
 
         except Exception as e:
+            print("fff")
             self.show_log(f"Error: {str(e)}", "Red")
 
     def wait_for_unlock_after_time(self, hover_time):
