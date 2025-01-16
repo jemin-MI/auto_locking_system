@@ -22,6 +22,8 @@ class TimerApp(QWidget):
         self.initUI()
         self.scheduler = BackgroundScheduler()
         self.label = QLabel(self)
+        self.current_job_id = None  # Track the job ID of the currently running job
+
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -265,28 +267,39 @@ class TimerApp(QWidget):
             time.sleep(0.5)
 
     def start_task(self, scheduled_time, hover_time):
-        
-        time.sleep(scheduled_time.total_seconds())
-        self.on_lock_click()
-        self.wait_for_unlock_after_time(hover_time)
-
-
-        ''' uncomment if you have to use apscheduler '''
-
-        # run_time = datetime.now() + scheduled_time
-        # self.scheduler.add_job(self.on_lock_click, 'date', run_date=run_time)
-        # self.scheduler.start()
+        run_time = datetime.now() + scheduled_time
+        print("run time", run_time)
         # time.sleep(scheduled_time.total_seconds())
-        # self.wait_for_unlock_after_time(hover_time)
+        # self.on_lock_click(hover_time)
+        
+        ## uncomment if you have to use the scheduler
+        job_id = f"lock_job_{run_time.strftime('%Y%m%d%H%M%S')}"
 
-    def on_lock_click(self):
+        # Stop the previous job if it's still running
+        if self.current_job_id:
+            try:
+                job = self.scheduler.get_job(self.current_job_id)
+                if job:
+                    job.remove()  # Remove the previous job
+                    print(f"Previous job with ID {self.current_job_id} removed")
+            except Exception as e:
+                print(f"Error removing previous job: {str(e)}")
+
+        # Add the new job with a unique ID
+        self.current_job_id = job_id
+        print("job", self.current_job_id)
+        self.scheduler.add_job(self.on_lock_click, 'date', run_date=run_time, args=[hover_time], id=self.current_job_id)
+        self.scheduler.start()
+
+    def on_lock_click(self,hover_time):
         try:
             subprocess.run(['loginctl', 'lock-session'], check=True)
+            self.wait_for_unlock_after_time(hover_time)
 
         except Exception as e:
             self.show_log(f"Lock failed: {str(e)}", "Red")
 
-
+            
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = TimerApp()
